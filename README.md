@@ -1,0 +1,110 @@
+# Rivage Reverb
+
+A six-mode algorithmic reverb for electric guitar, built with JUCE. Each mode is
+its own signal path rather than a preset on a shared engine — a room with early
+reflections and low-frequency modes, a dense plate, a progressive-diffusion hall,
+a dispersive spring, a shimmering hall, and a long drifting cloud.
+
+Version 0.1.0 (pre-release). Windows x64 VST3.
+
+![The Rivage Reverb editor](docs/rivage-ui.png)
+
+## Features
+
+- **Six machines**, each implemented separately:
+  - `ROOM` — 14 early-reflection taps, five low-frequency modal resonators, an
+    8-line feedback tank with damped low end.
+  - `PLATE` — five cascaded allpass diffusers into a short 8-line tank, no early
+    reflections, a fixed 3.8 kHz sheen.
+  - `HALL` — progressive diffusion: the four diffuser stages fade into the tank
+    one after another, so the tail thickens over its first ~70 ms; 16-line FDN.
+  - `SPRING` — six coil delays, each with 24 first-order allpass stages inside
+    the feedback loop for dispersion; no modulation.
+  - `SHIMMER` — the hall tank with an octave-up granular pitch shifter feeding
+    the input, so each pass through the tank climbs another octave.
+  - `CLOUD` — three allpass chains with their own feedback delays, slowly
+    modulated; no tank, no early reflections.
+- **Seven knobs and one switch**: Mix, Decay, Pre-Delay, Tone, Mod, Size, Width,
+  Freeze.
+- Zero added latency, no look-ahead, mono or stereo in.
+- Low end below 120 Hz is folded to the centre so the tail never goes hollow in
+  mono.
+- Algorithm changes cross-fade over ~150 ms while the outgoing tail keeps
+  playing, so switching machines does not click or cut the reverb.
+
+## Measured behaviour
+
+Measured on a 48 kHz impulse response, 100 % wet, with each machine at its
+default settings:
+
+| Machine | RT60 | Pre-delay | Peak |
+| --- | --- | --- | --- |
+| ROOM | 1.31 s | 33 ms | 0.007 |
+| PLATE | 2.33 s | 33 ms | 0.018 |
+| HALL | 3.40 s | 71 ms | 0.025 |
+| SPRING | 2.56 s | 30 ms | 0.009 |
+| SHIMMER | 3.25 s | 71 ms | 0.052 |
+| CLOUD | 4.13 s | 30 ms | 0.064 |
+
+Decay knob response (RT60 at knob 0.1 / 0.35 / 0.6 / 0.9): ROOM 0.72 → 2.86 s,
+HALL 0.98 → 12.33 s, SPRING 1.21 → 5.47 s, CLOUD 2.02 → 9.79 s.
+
+CPU, 48 kHz / 64-sample buffer, one core: 2.6 % (PLATE) to 8.1 % (ROOM).
+
+Charts live in `docs/figures/`.
+
+## Building
+
+Requirements: CMake 3.22+, a C++17 compiler, and JUCE 9. The repository expects
+JUCE in a folder named `JUCE-9.0.2` next to `CMakeLists.txt`:
+
+```sh
+git clone --depth 1 --branch 9.0.2 https://github.com/juce-framework/JUCE.git JUCE-9.0.2
+```
+
+Windows (Visual Studio 2022+ with the CMake/Ninja components):
+
+```bat
+scripts\build.cmd all build Release
+```
+
+Anywhere else:
+
+```sh
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target RivageReverb_VST3
+```
+
+The VST3 lands in
+`build/Source/RivageReverb_artefacts/Release/VST3/Rivage Reverb.vst3`.
+
+## Installing
+
+Windows, per-user (no administrator rights, does not touch other plug-ins):
+
+```bat
+scripts\install-user.cmd
+```
+
+This copies the bundle to
+`%LOCALAPPDATA%\Programs\Common\VST3\WTdusk\Rivage Reverb.vst3`. To uninstall,
+delete that `WTdusk` folder.
+
+## Tools
+
+- `tools/analyzer` — a headless host used during development: `scan` prints a
+  plug-in's parameter model, `render` writes impulse, sweep or programme
+  material renders to WAV, `bench` runs the DSP in-process, `switchtest` checks
+  algorithm changes for clicks.
+- `tools/preview` — a standalone window that shows the editor without a DAW,
+  with `--screenshot` for documentation images.
+- `scripts/smoke.sh` — 26 renders across algorithms, sample rates and buffer
+  sizes.
+
+## Licence
+
+AGPL-3.0-or-later. See `LICENSE`. Because JUCE 9 is dual-licensed, publishing
+this source under the AGPL is what makes the JUCE terms work without a
+commercial JUCE licence. See `THIRD-PARTY.md` for third-party notices.
+
+Copyright © 2026 WTdusk.
