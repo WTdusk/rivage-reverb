@@ -1,0 +1,15 @@
+# Normalise line endings: LF in the repository, CRLF on Windows for batch files.
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.sh  text eol=lf
+
+# Binary assets: never diff, never convert.
+*.png binary
+*.jpg binary
+*.vst3 binary
+*.wav binary
+
+# GitHub treats these as generated; keep them out of language statistics.
+docs/figures/*.png linguist-generated
