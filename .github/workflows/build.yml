@@ -1,0 +1,47 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows x64 VST3
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: >
+          cmake -B build -A x64
+          -DRIVAGE_FETCH_JUCE=ON
+          -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build plug-in
+        run: cmake --build build --config Release --target RivageReverb_VST3
+
+      - name: Build tools
+        run: >
+          cmake --build build --config Release
+          --target Analyzer RivagePreview
+
+      - name: Smoke test
+        shell: bash
+        run: bash scripts/smoke.sh
+
+      - name: Upload plug-in
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rivage-Reverb-vst3-windows-x64
+          path: build/Source/RivageReverb_artefacts/Release/VST3
+          if-no-files-found: error
+          retention-days: 14

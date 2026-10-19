@@ -10,8 +10,26 @@ if (MSVC)
 endif()
 
 option(RIVAGE_GENERATE_MAP "Emit a linker map file for the VST3 target" OFF)
+option(RIVAGE_FETCH_JUCE "Download JUCE with FetchContent instead of using JUCE-9.0.2/" OFF)
 
-add_subdirectory(JUCE-9.0.2)
+set(RIVAGE_JUCE_TAG "9.0.2")
+
+if (RIVAGE_FETCH_JUCE)
+    include(FetchContent)
+    FetchContent_Declare(JUCE
+        GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
+        GIT_TAG        ${RIVAGE_JUCE_TAG}
+        GIT_SHALLOW    TRUE)
+    FetchContent_MakeAvailable(JUCE)
+elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/JUCE-${RIVAGE_JUCE_TAG}/CMakeLists.txt")
+    add_subdirectory("JUCE-${RIVAGE_JUCE_TAG}")
+else()
+    message(FATAL_ERROR
+        "JUCE ${RIVAGE_JUCE_TAG} was not found.\n"
+        "Either clone it next to this file:\n"
+        "  git clone --depth 1 --branch ${RIVAGE_JUCE_TAG} https://github.com/juce-framework/JUCE.git JUCE-${RIVAGE_JUCE_TAG}\n"
+        "or configure with -DRIVAGE_FETCH_JUCE=ON so CMake fetches it.")
+endif()
 
 add_subdirectory(Source)
 add_subdirectory(tools/analyzer)

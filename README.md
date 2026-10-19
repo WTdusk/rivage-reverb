@@ -1,5 +1,8 @@
 # Rivage Reverb
 
+[![build](https://github.com/WTdusk/rivage-reverb/actions/workflows/build.yml/badge.svg)](https://github.com/WTdusk/rivage-reverb/actions/workflows/build.yml)
+[![licence: AGPL-3.0-or-later](https://img.shields.io/badge/licence-AGPL--3.0--or--later-006864.svg)](LICENSE)
+
 A six-mode algorithmic reverb for electric guitar, built with JUCE. Each mode is
 its own signal path rather than a preset on a shared engine — a room with early
 reflections and low-frequency modes, a dense plate, a progressive-diffusion hall,
@@ -55,25 +58,22 @@ Charts live in `docs/figures/`.
 
 ## Building
 
-Requirements: CMake 3.22+, a C++17 compiler, and JUCE 9. The repository expects
-JUCE in a folder named `JUCE-9.0.2` next to `CMakeLists.txt`:
+Requirements: CMake 3.22+, a C++17 compiler, and JUCE 9.0.2. JUCE is not vendored;
+either let CMake fetch it, or clone it next to `CMakeLists.txt` as `JUCE-9.0.2/`:
 
 ```sh
-git clone --depth 1 --branch 9.0.2 https://github.com/juce-framework/JUCE.git JUCE-9.0.2
+cmake -B build -DRIVAGE_FETCH_JUCE=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target RivageReverb_VST3
 ```
 
-Windows (Visual Studio 2022+ with the CMake/Ninja components):
+Windows, with the MSVC environment set up:
 
 ```bat
 scripts\build.cmd all build Release
 ```
 
-Anywhere else:
-
-```sh
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --target RivageReverb_VST3
-```
+`BUILDING.md` covers per-platform steps, the generator and build-directory quirks,
+and the common failure modes.
 
 The VST3 lands in
 `build/Source/RivageReverb_artefacts/Release/VST3/Rivage Reverb.vst3`.
@@ -99,7 +99,7 @@ delete that `WTdusk` folder.
 - `tools/preview` — a standalone window that shows the editor without a DAW,
   with `--screenshot` for documentation images.
 - `scripts/smoke.sh` — 26 renders across algorithms, sample rates and buffer
-  sizes.
+  sizes. Run by CI on every push.
 
 ## Licence
 
