@@ -1,0 +1,47 @@
+# ----------------------------------------------------------------------- JUCE
+# Vendored locally for building; clone tag 9.0.2 into JUCE-9.0.2/ instead.
+JUCE-9.0.2/
+JUCE*/
+
+# --------------------------------------------------------------- build trees
+build/
+build-*/
+.vs/
+CMakeSettings.json
+CMakeUserPresets.json
+
+# ------------------------------------------- third-party plug-ins (never commit)
+# Commercial plug-ins that were measured during development. Not ours, not
+# redistributable.
+资源/
+
+# ------------------------------------------------ internal measurement lab
+# Sweeps, impulse responses, parameter dumps and the analysis scripts all
+# describe third-party products, so the whole folder stays local.
+analysis/
+
+# --------------------------------------------------------- internal documents
+# The long-form engineering report, the audition renders and the design
+# handoff are kept locally; the public docs are docs/rivage-ui.png and
+# docs/figures/.
+docs/REPORT.md
+docs/audition/
+docs/design/
+docs/design-handoff.md
+
+# ----------------------------------------------------------------- artefacts
+*.vst3
+*.component
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.obj
+*.wav
+
+# ------------------------------------------------------------------ OS noise
+Thumbs.db
+desktop.ini
+.DS_Store
