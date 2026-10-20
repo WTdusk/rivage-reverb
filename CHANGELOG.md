@@ -4,6 +4,66 @@ All notable changes to this project are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — 2026-10-20
+
+SPRING grows a second machine. The old, strictly linear waveguide is kept
+bit-for-bit as `PURE`; the new `TANK` puts the physical chain around it, so the
+spring now answers the input level with different behaviour instead of being
+one fixed filter.
+
+### Added
+
+- **`SPRING PURE` / `SPRING TANK`**, selected by a new `Spring Model` switch in
+  the FREEZE row while SPRING is the active machine. PURE is the 0.1.0 signal
+  path, sample for sample (31-render golden set, all bit-exact); it stays the
+  default so existing sessions sound identical. TANK has its own 12-render
+  golden set (`build/golden/manifest_tank.tsv`) so its timbre is pinned too.
+- **`Drive`** knob (±18 dB around its noon detent, 70 % of the gain change
+  compensated). While SPRING is selected it replaces the MOD knob, which does
+  nothing on a spring. `Drive` is a new parameter; it is neutral on every other
+  machine.
+- TANK's signal chain, all inside `if constexpr` so PURE is untouched:
+  - a drive transducer (tanh around a 0.9 knee with a small static bias, run 2×
+    oversampled so the harmonics do not alias, then DC-blocked);
+  - a level dependent working point: the loop damping shortens RT60 by up to
+    25 % and the output tone follows the material down, both driven by a slow
+    envelope follower (10 ms attack / 400 ms release);
+  - an **impact layer**: when the input level after the Drive gain crosses
+    −12 dBFS (off again below −15 dBFS, 400 ms release) short noise bursts are
+    injected into the coils, 0.5 events/s at the threshold rising 1.8× per dB,
+    capped at 10 events/s, with a 15 % chance of a quieter second tick 6–12 ms
+    later;
+  - a saturating pickup (`tanh` with an 0.8 knee) and the ROOM soft-clip curve
+    on the output instead of the hard clamp.
+- `tools/analysis/`: the measurement toolkit — `rvx_measure.py` (`info`, `thd`,
+  `rt60`, `centroid`, `events`, `compare`, `sweep`), `regress_golden.py` (the
+  bit-exact regression runner), `run_baseline.py`, plus `gate_scan.py`,
+  `burst_tail.py`, `tank_regimes.py` and `capture_tank_golden.py` for the spring
+  work. `tools/preview` gained `--set id=value`.
+- Golden capture sets (kept local under `build/golden/`, regenerated with
+  `tools/analysis/capture_tank_golden.py` and the original capture script): 31
+  PURE renders and 12 TANK renders, compared by SHA-256 plus `max|diff| == 0`.
+
+### Changed
+
+- `docs/REPORT.md` §5.4 now documents the two spring machines, §7.1 lists the
+  two new parameters, and §8.0 has the TANK level-state measurements.
+- Version 0.2.0; editor status bar reads `RIVAGE 0.2`.
+
+### Fixed
+
+- The machine tabs at the bottom of the editor never showed which machine was
+  active. `juce::ParameterAttachment` hands back the *denormalised* value, so the
+  old callback multiplied an item index by five and always landed out of range.
+
+### Known limitations
+
+- TANK is deliberately non-linear: it fails null tests and its THD rises with
+  level (1 kHz sine: 0.02 % at −74 dBFS, 0.08 % at −44, 2.2 % at −14, 11 % at
+  0 dBFS). PURE is the numerically linear machine.
+- The impact layer has no user control — its threshold, rate and level are fixed
+  by design, and it is switched off while Freeze is engaged.
+
 ## [0.1.0] — 2026-10-19
 
 First release. Windows x64 VST3, as a source tree, a portable archive and a Windows installer. The binaries are not code-signed.
@@ -48,4 +108,5 @@ First release. Windows x64 VST3, as a source tree, a portable archive and a Wind
   short tank delays rather than a bug.
 - No VST2, AU or AAX builds.
 
+[0.2.0]: https://github.com/WTdusk/rivage-reverb/releases/tag/v0.2.0
 [0.1.0]: https://github.com/WTdusk/rivage-reverb/releases/tag/v0.1.0
