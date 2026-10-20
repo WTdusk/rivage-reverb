@@ -80,15 +80,26 @@ The VST3 lands in
 
 ## Installing
 
-Windows, per-user (no administrator rights, does not touch other plug-ins):
+Windows x64: run `RivageReverb-0.1.0-win64.exe` from the release page and press
+next. It installs into `C:\Program Files\Common Files\VST3\Rivage Reverb.vst3`
+by default, and asks for administrator rights only because that folder needs
+them. Change the folder on the first page if your plug-ins live somewhere else;
+any folder works, including a per-user one under `%LOCALAPPDATA%` that needs no
+elevation.
+
+The installer is built with Inno Setup and includes an uninstaller that removes
+the bundle, the documents and its registry entry. It never writes to the network
+and it does not touch any other vendor's plug-ins.
+
+From a source build, without the installer:
 
 ```bat
 scripts\install-user.cmd
 ```
 
-This copies the bundle to
-`%LOCALAPPDATA%\Programs\Common\VST3\WTdusk\Rivage Reverb.vst3`. To uninstall,
-delete that `WTdusk` folder.
+That copies the bundle to `%LOCALAPPDATA%\Programs\Common\VST3\WTdusk\Rivage
+Reverb.vst3`, droppable by deleting the `WTdusk` folder - useful if your DAW
+already scans that path, otherwise point the DAW at the build folder directly.
 
 ## Tools
 
