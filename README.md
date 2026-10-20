@@ -8,7 +8,7 @@ its own signal path rather than a preset on a shared engine — a room with earl
 reflections and low-frequency modes, a dense plate, a progressive-diffusion hall,
 a dispersive spring, a shimmering hall, and a long drifting cloud.
 
-Version 0.1.0 (pre-release). Windows x64 VST3.
+Version 0.2.0 (pre-release). Windows x64 VST3.
 
 ![The Rivage Reverb editor](docs/rivage-ui.png)
 
@@ -21,14 +21,21 @@ Version 0.1.0 (pre-release). Windows x64 VST3.
     reflections, a fixed 3.8 kHz sheen.
   - `HALL` — progressive diffusion: the four diffuser stages fade into the tank
     one after another, so the tail thickens over its first ~70 ms; 16-line FDN.
-  - `SPRING` — six coil delays, each with 24 first-order allpass stages inside
-    the feedback loop for dispersion; no modulation.
+  - `SPRING` — in two voicings. `PURE` is the 0.1.0 signal path: six coil delays,
+    each with 24 first-order allpass stages inside the feedback loop for
+    dispersion, no modulation, numerically linear. `TANK` wraps that waveguide in
+    the physical chain — a saturating drive transducer, a level-dependent working
+    point (damping and tone follow how hard the tank is driven) and a restrained
+    impact layer that ticks the coils when the input goes past −12 dBFS. PURE is
+    the default, so projects made with 0.1.0 sound identical.
   - `SHIMMER` — the hall tank with an octave-up granular pitch shifter feeding
     the input, so each pass through the tank climbs another octave.
   - `CLOUD` — three allpass chains with their own feedback delays, slowly
     modulated; no tank, no early reflections.
 - **Seven knobs and one switch**: Mix, Decay, Pre-Delay, Tone, Mod, Size, Width,
-  Freeze.
+  Freeze. While SPRING is selected the MOD knob becomes **Drive** (±18 dB, with
+  70 % of the gain change compensated) and a `PURE / TANK` switch appears in the
+  FREEZE row.
 - Zero added latency, no look-ahead, mono or stereo in.
 - Low end below 120 Hz is folded to the centre so the tail never goes hollow in
   mono.
@@ -51,6 +58,11 @@ default settings:
 
 Decay knob response (RT60 at knob 0.1 / 0.35 / 0.6 / 0.9): ROOM 0.72 → 2.86 s,
 HALL 0.98 → 12.33 s, SPRING 1.21 → 5.47 s, CLOUD 2.02 → 9.79 s.
+
+The table is PURE. `SPRING TANK` at its default Drive starts from the same
+2.56 s but answers level instead of being one fixed filter: damping shortens the
+tail and the pickup saturates as the tank is driven, and Drive at +18 dB takes
+RT60 down to 1.68 s. `docs/REPORT.md` §8.0 has the level-state measurements.
 
 CPU, 48 kHz / 64-sample buffer, one core: 2.6 % (PLATE) to 8.1 % (ROOM).
 
@@ -80,7 +92,7 @@ The VST3 lands in
 
 ## Installing
 
-Windows x64: run `RivageReverb-0.1.0-win64.exe` from the release page and press
+Windows x64: run the Windows installer from the release page and press
 next. It installs into `C:\Program Files\Common Files\VST3\Rivage Reverb.vst3`
 by default, and asks for administrator rights only because that folder needs
 them. Change the folder on the first page if your plug-ins live somewhere else;
@@ -113,6 +125,9 @@ already scans that path, otherwise point the DAW at the build folder directly.
   with `--screenshot` for documentation images.
 - `scripts/smoke.sh` — 26 renders across algorithms, sample rates and buffer
   sizes. Run by CI on every push.
+- `tools/analysis` — the measurement toolkit: `rvx_measure.py` (RT60, THD,
+  spectral centroid, impact events, level sweeps), `regress_golden.py` (the
+  bit-exact PURE regression) and the baseline reports in `build/measures/`.
 
 ## Licence
 
