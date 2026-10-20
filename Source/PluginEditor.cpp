@@ -37,10 +37,46 @@ RivageAudioProcessorEditor::RivageAudioProcessorEditor (RivageAudioProcessor& ow
     configureKnob (toneKnob,     paramID::tone,     "TONE");
     configureKnob (sizeKnob,     paramID::size,     "SIZE");
     configureKnob (widthKnob,    paramID::width,    "WIDTH");
+    configureKnob (driveKnob,    paramID::drive,    "DRIVE");
 
     decayKnob.slider.getProperties().set ("hero", true);
     decayKnob.value.setFont (RivageLookAndFeel::monoFont (19.0f));
     decayKnob.name.setFont (RivageLookAndFeel::bodyFont (10.0f));
+
+    // ---- freeze -----------------------------------------------------------
+    freezeButton.setComponentID ("freeze");
+    addAndMakeVisible (freezeButton);
+
+    if (auto* parameter = processor.getValueTreeState().getParameter (paramID::freeze))
+        freezeAttachment = std::make_unique<juce::ButtonParameterAttachment> (*parameter, freezeButton);
+
+    // ---- spring model (only while SPRING is the selected machine) ----------
+    auto configureModelButton = [this] (juce::TextButton& button, const char* text)
+    {
+        button.setButtonText (text);
+        button.setComponentID ("tab");
+        addAndMakeVisible (button);
+    };
+
+    configureModelButton (pureButton, "PURE");
+    configureModelButton (tankButton, "TANK");
+
+    if (auto* parameter = processor.getValueTreeState().getParameter (paramID::springModel))
+    {
+        springModelAttachment = std::make_unique<juce::ParameterAttachment> (
+            *parameter, [this] (float value)
+            {
+                const bool tank = value >= 0.5f;
+                pureButton.setToggleState (! tank, juce::dontSendNotification);
+                tankButton.setToggleState (tank, juce::dontSendNotification);
+                repaint();
+            });
+
+        springModelAttachment->sendInitialUpdate();
+
+        pureButton.onClick = [this]() { springModelAttachment->setValueAsCompleteGesture (0.0f); };
+        tankButton.onClick = [this]() { springModelAttachment->setValueAsCompleteGesture (1.0f); };
+    }
 
     // ---- machines (dock) --------------------------------------------------
     static const std::array<const char*, kNumAlgorithms> kTabNames = { "ROOM", "PLATE", "HALL",
@@ -59,7 +95,9 @@ RivageAudioProcessorEditor::RivageAudioProcessorEditor (RivageAudioProcessor& ow
         algorithmAttachment = std::make_unique<juce::ParameterAttachment> (
             *parameter, [this] (float value)
             {
-                refreshAlgorithmButtons ((int) std::lround (value * (float) (kNumAlgorithms - 1)));
+                // ParameterAttachment hands back the denormalised value, which
+                // for a choice parameter is the item index itself.
+                refreshAlgorithmButtons ((int) std::lround (value));
             });
 
         algorithmAttachment->sendInitialUpdate();
@@ -72,13 +110,6 @@ RivageAudioProcessorEditor::RivageAudioProcessorEditor (RivageAudioProcessor& ow
             };
         }
     }
-
-    // ---- freeze -----------------------------------------------------------
-    freezeButton.setComponentID ("freeze");
-    addAndMakeVisible (freezeButton);
-
-    if (auto* parameter = processor.getValueTreeState().getParameter (paramID::freeze))
-        freezeAttachment = std::make_unique<juce::ButtonParameterAttachment> (*parameter, freezeButton);
 
     setSize (kEditorWidth, kEditorHeight);
     setResizable (false, false);
@@ -142,7 +173,31 @@ void RivageAudioProcessorEditor::refreshAlgorithmButtons (int activeIndex)
     for (int i = 0; i < kNumAlgorithms; ++i)
         algorithmButtons[(size_t) i].setToggleState (i == activeIndex, juce::dontSendNotification);
 
+    refreshSpringControls (activeIndex);
+
     repaint();
+}
+
+void RivageAudioProcessorEditor::refreshSpringControls (int activeIndex)
+{
+    const bool spring = activeIndex == kSpringAlgorithmIndex;
+
+    auto showKnob = [] (Knob& knob, bool visible)
+    {
+        knob.slider.setVisible (visible);
+        knob.name.setVisible (visible);
+        knob.value.setVisible (visible);
+    };
+
+    // MOD does nothing to SPRING, so its slot becomes DRIVE while SPRING is
+    // selected: one knob, two meanings, and no extra hardware on the face.
+    showKnob (modKnob, ! spring);
+    showKnob (driveKnob, spring);
+
+    pureButton.setVisible (spring);
+    tankButton.setVisible (spring);
+
+    resized();
 }
 
 //==============================================================================
@@ -298,7 +353,7 @@ void RivageAudioProcessorEditor::paint (juce::Graphics& g)
                                             RivageLookAndFeel::muted(), 0.4f,
                                             juce::Justification::centred);
 
-        RivageLookAndFeel::drawTrackedText (g, "RIVAGE 0.1",
+        RivageLookAndFeel::drawTrackedText (g, "RIVAGE 0.2",
                                             { bounds.getWidth() - 140.0f, textY, 116.0f, 14.0f },
                                             RivageLookAndFeel::monoFont (8.0f),
                                             RivageLookAndFeel::muted(), 1.4f,
@@ -313,7 +368,22 @@ void RivageAudioProcessorEditor::paint (juce::Graphics& g)
             index = juce::jlimit (0, kNumAlgorithms - 1,
                                   (int) std::lround (parameter->getValue() * (float) (kNumAlgorithms - 1)));
 
-        const auto name = juce::String (algorithmName (index)).toUpperCase();
+        juce::String name = juce::String (algorithmName (index)).toUpperCase();
+        bool tankModel = false;
+
+        if (index == kSpringAlgorithmIndex)
+        {
+            if (auto* parameter = processor.getValueTreeState().getParameter (paramID::springModel))
+                tankModel = parameter->getValue() >= 0.5f;
+
+            name += tankModel ? " TANK" : " PURE";
+
+            RivageLookAndFeel::drawTrackedText (g, "SPRING MODEL", { 587.0f, 338.0f, 140.0f, 12.0f },
+                                                RivageLookAndFeel::monoFont (8.0f),
+                                                RivageLookAndFeel::muted(), 1.2f,
+                                                juce::Justification::centredLeft);
+        }
+
         const auto indexText = "MACHINE " + juce::String (index + 1).paddedLeft ('0', 2) + " / "
                                + juce::String (kNumAlgorithms).paddedLeft ('0', 2);
 
@@ -350,8 +420,13 @@ void RivageAudioProcessorEditor::resized()
     placeKnob (decayKnob, { 99, 88, 112, 112 }, { 74, 204, 160, 13 }, { 74, 218, 160, 18 });
     placeKnob (predelayKnob, { 40, 258, 62, 62 }, { 16, 322, 110, 12 }, { 16, 335, 110, 16 });
     placeKnob (modKnob, { 178, 258, 62, 62 }, { 154, 322, 110, 12 }, { 154, 335, 110, 16 });
+    placeKnob (driveKnob, { 178, 258, 62, 62 }, { 154, 322, 110, 12 }, { 154, 335, 110, 16 });
 
     freezeButton.setBounds (32, 352, 246, 22);
+
+    // ---- spring model switch (right rail, under the SURFACE knobs) --------
+    pureButton.setBounds (587, 354, 76, 22);
+    tankButton.setBounds (669, 354, 76, 22);
 
     // ---- right rail: 02 SURFACE ------------------------------------------
     placeKnob (mixKnob, { 611, 104, 62, 62 }, { 587, 168, 110, 12 }, { 587, 181, 110, 16 });
