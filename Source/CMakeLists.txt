@@ -1,6 +1,6 @@
 # Rivage Reverb - WTdusk
 #
-# Identity fields (see docs/REPORT.md section 7):
+# Identity fields:
 #   PLUGIN_MANUFACTURER_CODE / PLUGIN_CODE form the VST3 CID. Do not change them
 #   after a public release: DAWs identify the plug-in by this pair, so a change
 #   makes existing sessions treat Rivage as a different plug-in.

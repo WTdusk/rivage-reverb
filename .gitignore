@@ -40,7 +40,7 @@ docs/design-handoff.md
 *.wav
 
 # ---------------------------------------- local portable toolchain (not shipped)
-# Inno Setup unpacked with innoextract; recreated by installer/README.md steps.
+# Inno Setup unpacked with innoextract; see the packaging section of BUILDING.md.
 tools/inno/
 dist/
 
