@@ -39,6 +39,11 @@ docs/design-handoff.md
 *.obj
 *.wav
 
+# ---------------------------------------- local portable toolchain (not shipped)
+# Inno Setup unpacked with innoextract; recreated by installer/README.md steps.
+tools/inno/
+dist/
+
 # ------------------------------------------------------------------ OS noise
 Thumbs.db
 desktop.ini
