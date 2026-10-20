@@ -139,6 +139,11 @@ Notes on the installer itself:
 - Inno remembers the previously chosen folder (`UsePreviousAppDir=yes`), so a
   second install defaults to wherever the last one went. Clear
   `HKCU\Software\WTdusk\Rivage Reverb` if you want the stock path back.
+- `installer/RivageReverb.iss` **must stay UTF-8 with a BOM** (`EF BB BF`).
+  Without the BOM Inno reads the file as ANSI, so every Chinese string in
+  `[CustomMessages]` turns into mojibake on screen while the English text still
+  looks fine - an early build shipped that way. Editors that strip the BOM
+  silently reintroduce the bug.
 
 ## Tests and tools
 

@@ -1,4 +1,4 @@
-; ---------------------------------------------------------------------------
+﻿; ---------------------------------------------------------------------------
 ; Rivage Reverb - VST3 installer (Inno Setup 6)
 ;
 ; Build with scripts\package.cmd, which passes the version and the bundle path:
