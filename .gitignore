@@ -10,14 +10,14 @@ build-*/
 CMakeSettings.json
 CMakeUserPresets.json
 
-# ------------------------------------------- third-party plug-ins (never commit)
-# Commercial plug-ins that were measured during development. Not ours, not
-# redistributable.
+# ------------------------------------------------- material kept out of git
+# Local reference material that is not part of this project and must never be
+# committed.
 资源/
 
-# ------------------------------------------------ internal measurement lab
-# Sweeps, impulse responses, parameter dumps and the analysis scripts all
-# describe third-party products, so the whole folder stays local.
+# ------------------------------------------------------ measurement workspace
+# Scratch renders, captures and the analysis scripts used while tuning stay
+# local; only their conclusions live in docs/.
 analysis/
 
 # --------------------------------------------------------- internal documents
