@@ -6,7 +6,7 @@ All notable changes to this project are recorded here. The format follows
 
 ## [0.1.0] — 2026-10-19
 
-First source release. Windows x64 VST3, no installer, no code signing.
+First release. Windows x64 VST3, as a source tree, a portable archive and a Windows installer. The binaries are not code-signed.
 
 ### Added
 
@@ -35,6 +35,9 @@ First source release. Windows x64 VST3, no installer, no code signing.
   `tools/preview` (editor window with `--screenshot`), `scripts/smoke.sh`
   (26 renders), `scripts/build.cmd`, `scripts/install-user.cmd`.
 - Editor artwork embedded as binary data.
+- Windows installer (`installer/`, built with Inno Setup) that installs to the
+  standard VST3 folder, records an uninstaller and ships the licence and notices
+  inside the bundle; plus a portable archive built by `scripts/make_zip.py`.
 
 ### Known limitations
 
