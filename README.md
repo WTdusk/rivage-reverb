@@ -40,14 +40,14 @@ Version 0.1.0 (pre-release). Windows x64 VST3.
 Measured on a 48 kHz impulse response, 100 % wet, with each machine at its
 default settings:
 
-| Machine | RT60 | Pre-delay | Peak |
-| --- | --- | --- | --- |
-| ROOM | 1.31 s | 33 ms | 0.007 |
-| PLATE | 2.33 s | 33 ms | 0.018 |
-| HALL | 3.40 s | 71 ms | 0.025 |
-| SPRING | 2.56 s | 30 ms | 0.009 |
-| SHIMMER | 3.25 s | 71 ms | 0.052 |
-| CLOUD | 4.13 s | 30 ms | 0.064 |
+| Machine | RT60 | Pre-delay |
+| --- | --- | --- |
+| ROOM | 1.31 s | 33 ms |
+| PLATE | 2.33 s | 33 ms |
+| HALL | 3.40 s | 71 ms |
+| SPRING | 2.56 s | 30 ms |
+| SHIMMER | 3.25 s | 71 ms |
+| CLOUD | 4.13 s | 30 ms |
 
 Decay knob response (RT60 at knob 0.1 / 0.35 / 0.6 / 0.9): ROOM 0.72 → 2.86 s,
 HALL 0.98 → 12.33 s, SPRING 1.21 → 5.47 s, CLOUD 2.02 → 9.79 s.

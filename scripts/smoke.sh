@@ -5,7 +5,7 @@ set -u
 
 EXE="build/tools/analyzer/Analyzer_artefacts/Release/Analyzer.exe"
 PLUGIN="build/Source/RivageReverb_artefacts/Release/VST3/Rivage Reverb.vst3"
-OUT="analysis/ir/smoke"
+OUT="build/smoke"
 mkdir -p "$OUT"
 
 fails=0
