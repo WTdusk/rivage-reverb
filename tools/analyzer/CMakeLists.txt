@@ -7,6 +7,7 @@ target_sources(Analyzer PRIVATE
     ../../Source/dsp/RoomAlgorithm.cpp
     ../../Source/dsp/PlateAlgorithm.cpp
     ../../Source/dsp/SpringAlgorithm.cpp
+    ../../Source/dsp/SpringTankAlgorithm.cpp
     ../../Source/dsp/ShimmerAlgorithm.cpp
     ../../Source/dsp/CloudAlgorithm.cpp)
 
