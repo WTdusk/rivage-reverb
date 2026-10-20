@@ -118,6 +118,18 @@ bumps in `CMakeLists.txt` flow through without editing the `.iss`. `ISCC`
 prints about a hundred lines of compile log; the script redirects it to
 `dist\iscc.log` and prints only the artefact, its size and its SHA-256.
 
+The portable archive that ships next to the installer is built from the same
+bundle:
+
+```sh
+python scripts/make_zip.py
+```
+
+It writes `dist/RivageReverb-<version>-win64-vst3.zip` containing the bundle plus
+`LICENSE.txt`, `THIRD-PARTY.txt` inside `Contents\Resources` and an
+`INSTALL.txt` at the top level, and prints the size and SHA-256 to paste into the
+release notes.
+
 Notes on the installer itself:
 
 - It installs the bundle to `<chosen folder>\Rivage Reverb.vst3`, and puts
