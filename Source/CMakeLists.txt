@@ -28,7 +28,6 @@ target_sources(RivageReverb PRIVATE
     PluginProcessor.cpp
     PluginEditor.cpp
     Parameters.cpp
-    Diagnostics.cpp
     dsp/ReverbEngine.cpp
     dsp/HallAlgorithm.cpp
     dsp/RoomAlgorithm.cpp
@@ -59,9 +58,6 @@ if (MSVC AND RIVAGE_GENERATE_MAP)
     target_link_options(RivageReverb_VST3 PRIVATE "/OPT:REF" "/OPT:ICF")
 endif()
 
-if (WIN32)
-    target_link_libraries(RivageReverb PRIVATE dbghelp)
-endif()
 
 target_link_libraries(RivageReverb PRIVATE
     RivageArt

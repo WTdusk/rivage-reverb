@@ -1,10 +1,6 @@
 ﻿#include "PluginProcessor.h"
 #include "PluginEditor.h"
 
-#if JUCE_WINDOWS
-namespace rivage { namespace diag { void touch(); } }
-#endif
-
 namespace rivage
 {
 
@@ -15,10 +11,6 @@ RivageAudioProcessor::RivageAudioProcessor()
                           .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
       apvts (*this, nullptr, "RIVAGE", createParameterLayout())
 {
-   #if JUCE_WINDOWS
-    diag::touch();
-   #endif
-
     cacheParameterPointers();
     apvts.addParameterListener (paramID::algorithm, this);
 }

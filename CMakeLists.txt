@@ -7,6 +7,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (MSVC)
     add_compile_options(/MP)
+
+    # Release builds link the C/C++ runtime statically so the shipped VST3
+    # loads on a machine that has never had the Visual C++ redistributable
+    # installed. Override on the command line if a host needs the shared CRT.
+    if (NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
 endif()
 
 option(RIVAGE_GENERATE_MAP "Emit a linker map file for the VST3 target" OFF)

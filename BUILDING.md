@@ -131,6 +131,11 @@ Notes on the installer itself:
   entry.
 - There is no code signing. Windows SmartScreen will warn on first run; the
   SHA-256 above lets you check what you downloaded.
+- The plug-in links the C runtime statically (`CMAKE_MSVC_RUNTIME_LIBRARY` is
+  set to `MultiThreaded` in the top-level `CMakeLists.txt`), so the shipped
+  `.vst3` needs no Visual C++ redistributable. `dumpbin /dependents` on a
+  release build should list only DLLs that ship with Windows; if `VCRUNTIME140`
+  or `MSVCP140` shows up, the runtime setting did not reach every target.
 - Inno remembers the previously chosen folder (`UsePreviousAppDir=yes`), so a
   second install defaults to wherever the last one went. Clear
   `HKCU\Software\WTdusk\Rivage Reverb` if you want the stock path back.

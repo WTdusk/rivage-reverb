@@ -89,7 +89,9 @@ elevation.
 
 The installer is built with Inno Setup and includes an uninstaller that removes
 the bundle, the documents and its registry entry. It never writes to the network
-and it does not touch any other vendor's plug-ins.
+and it does not touch any other vendor's plug-ins. The plug-in links the C
+runtime statically, so there is no Visual C++ redistributable to install: the
+`.vst3` only depends on DLLs that ship with Windows.
 
 From a source build, without the installer:
 
