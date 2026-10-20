@@ -18,6 +18,8 @@ namespace paramID
     inline constexpr const char* size      = "size";
     inline constexpr const char* width     = "width";
     inline constexpr const char* freeze    = "freeze";
+    inline constexpr const char* springModel = "springModel";
+    inline constexpr const char* drive     = "drive";
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();

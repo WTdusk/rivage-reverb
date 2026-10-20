@@ -26,6 +26,12 @@ struct ReverbParameters
     float size = 0.5f;
     float width = 0.5f;
     float freeze = 0.0f;
+
+    /** 0 = SPRING (PURE, the linear tank), 1 = SPRING TANK (the physical one).
+        Ignored by every algorithm other than SPRING. */
+    int springModel = 0;
+    /** Input gain into the spring transducer, 0..1 with 0.5 = unity. TANK only. */
+    float drive = 0.5f;
 };
 
 //==============================================================================
@@ -64,7 +70,7 @@ private:
     std::unique_ptr<ReverbAlgorithm> current;
     std::unique_ptr<ReverbAlgorithm> retiring;
 
-    int activeAlgorithm = -1;
+    int activeEngine = -1;
 
     // Shared front end and back end.
     DelayLine preDelayL, preDelayR;

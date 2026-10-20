@@ -32,6 +32,8 @@ void RivageAudioProcessor::cacheParameterPointers()
     pSize      = apvts.getRawParameterValue (paramID::size);
     pWidth     = apvts.getRawParameterValue (paramID::width);
     pFreeze    = apvts.getRawParameterValue (paramID::freeze);
+    pSpringModel = apvts.getRawParameterValue (paramID::springModel);
+    pDrive     = apvts.getRawParameterValue (paramID::drive);
 }
 
 juce::String RivageAudioProcessor::getAlgorithmName (int index) const
@@ -76,6 +78,8 @@ void RivageAudioProcessor::pushTargetsToEngine()
     params.size      = pSize->load();
     params.width     = pWidth->load();
     params.freeze    = pFreeze->load() > 0.5f ? 1.0f : 0.0f;
+    params.springModel = juce::jlimit (0, 1, juce::roundToInt (pSpringModel->load()));
+    params.drive     = pDrive->load();
 
     engine.setParameters (params);
 }

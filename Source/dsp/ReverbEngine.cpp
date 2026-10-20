@@ -7,26 +7,38 @@ namespace rivage
 //==============================================================================
 namespace
 {
-const char* const kAlgorithmNames[kNumAlgorithms] =
+const char* const kAlgorithmNames[kNumEngines] =
 {
-    "ROOM", "PLATE", "HALL", "SPRING", "SHIMMER", "CLOUD"
+    "ROOM", "PLATE", "HALL", "SPRING", "SHIMMER", "CLOUD", "SPRING TANK"
 };
 } // namespace
 
 const char* algorithmName (int index) noexcept
 {
-    return kAlgorithmNames[juce::jlimit (0, kNumAlgorithms - 1, index)];
+    return kAlgorithmNames[juce::jlimit (0, kNumEngines - 1, index)];
 }
 
-std::unique_ptr<ReverbAlgorithm> createAlgorithm (int index)
+/** SPRING's two machines share one slot in the UI but are separate engines. */
+static int engineFor (const ReverbParameters& parameters) noexcept
 {
-    switch (juce::jlimit (0, kNumAlgorithms - 1, index))
+    const int algorithm = juce::jlimit (0, kNumAlgorithms - 1, parameters.algorithm);
+
+    if (algorithm == kSpringAlgorithmIndex && parameters.springModel == 1)
+        return kSpringTankEngine;
+
+    return algorithm;
+}
+
+std::unique_ptr<ReverbAlgorithm> createAlgorithm (int engineIndex)
+{
+    switch (juce::jlimit (0, kNumEngines - 1, engineIndex))
     {
         case 0:  return std::make_unique<RoomAlgorithm>();
         case 1:  return std::make_unique<PlateAlgorithm>();
         case 3:  return std::make_unique<SpringAlgorithm>();
         case 4:  return std::make_unique<ShimmerAlgorithm>();
         case 5:  return std::make_unique<CloudAlgorithm>();
+        case 6:  return std::make_unique<SpringTankAlgorithm>();
         default: return std::make_unique<HallAlgorithm>();
     }
 }
@@ -52,8 +64,8 @@ void ReverbEngine::prepare (double newSampleRate, int /*blockSize*/)
     lowMonoSide.reset();
     lowMonoSide.setHighPass (sampleRate, (double) kLowMonoHz, 0.707);
 
-    activeAlgorithm = juce::jlimit (0, kNumAlgorithms - 1, parameters.algorithm);
-    current = createAlgorithm (activeAlgorithm);
+    activeEngine = engineFor (parameters);
+    current = createAlgorithm (activeEngine);
     current->prepare (sampleRate);
 
     retiring.reset();
@@ -76,11 +88,11 @@ void ReverbEngine::reset()
 
     lowMonoSide.reset();
 
-    activeAlgorithm = juce::jlimit (0, kNumAlgorithms - 1, parameters.algorithm);
+    activeEngine = engineFor (parameters);
 
     if (current == nullptr)
     {
-        current = createAlgorithm (activeAlgorithm);
+        current = createAlgorithm (activeEngine);
         current->prepare (sampleRate);
     }
 
@@ -91,9 +103,9 @@ void ReverbEngine::setParameters (const ReverbParameters& newParameters)
 {
     parameters = newParameters;
 
-    const int wanted = juce::jlimit (0, kNumAlgorithms - 1, parameters.algorithm);
+    const int wanted = engineFor (parameters);
 
-    if (wanted != activeAlgorithm)
+    if (wanted != activeEngine)
         beginSwitch (wanted);
 
     smoothMix.setTargetValue (juce::jlimit (0.0f, 1.0f, parameters.mix));
@@ -108,6 +120,7 @@ void ReverbEngine::setParameters (const ReverbParameters& newParameters)
         p.size = juce::jlimit (0.0f, 1.0f, parameters.size);
         p.mod = juce::jlimit (0.0f, 1.0f, parameters.mod);
         p.freeze = juce::jlimit (0.0f, 1.0f, parameters.freeze);
+        p.drive = juce::jlimit (0.0f, 1.0f, parameters.drive);
         current->setParams (p);
     }
 }
@@ -128,6 +141,7 @@ void ReverbEngine::snapParameters()
         p.size = juce::jlimit (0.0f, 1.0f, parameters.size);
         p.mod = juce::jlimit (0.0f, 1.0f, parameters.mod);
         p.freeze = juce::jlimit (0.0f, 1.0f, parameters.freeze);
+        p.drive = juce::jlimit (0.0f, 1.0f, parameters.drive);
         current->setParams (p);
         current->snap();
     }
@@ -136,14 +150,14 @@ void ReverbEngine::snapParameters()
 }
 
 //==============================================================================
-void ReverbEngine::beginSwitch (int algorithmIndex)
+void ReverbEngine::beginSwitch (int engineIndex)
 {
     if (current == nullptr)
     {
-        activeAlgorithm = algorithmIndex;
-        current = createAlgorithm (algorithmIndex);
+        activeEngine = engineIndex;
+        current = createAlgorithm (engineIndex);
         current->prepare (sampleRate);
-        current->setParams ({ parameters.decay, parameters.size, parameters.mod, parameters.freeze });
+        current->setParams ({ parameters.decay, parameters.size, parameters.mod, parameters.freeze, parameters.drive });
         current->snap();
         return;
     }
@@ -153,11 +167,11 @@ void ReverbEngine::beginSwitch (int algorithmIndex)
     retiring.reset();
 
     retiring = std::move (current);
-    current = createAlgorithm (algorithmIndex);
-    activeAlgorithm = algorithmIndex;
+    current = createAlgorithm (engineIndex);
+    activeEngine = engineIndex;
 
     current->prepare (sampleRate);
-    current->setParams ({ parameters.decay, parameters.size, parameters.mod, parameters.freeze });
+    current->setParams ({ parameters.decay, parameters.size, parameters.mod, parameters.freeze, parameters.drive });
     current->snap();
 
     // The new algorithm fades in fast, the old tail fades out slowly, and the
