@@ -10,6 +10,12 @@ on:
 permissions:
   contents: read
 
+# One run per branch: a second push cancels the first instead of queueing another
+# ten-minute Windows job behind it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   windows:
     name: Windows x64 VST3
