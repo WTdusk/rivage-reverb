@@ -10,11 +10,13 @@ on:
 permissions:
   contents: read
 
-# One run per branch: a second push cancels the first instead of queueing another
-# ten-minute Windows job behind it.
+# One run per branch, so eleven pushes cannot queue eleven ten-minute Windows
+# jobs. Only pull-request runs are cancelled when superseded: a cancelled run on
+# the default branch makes the README badge read "failing" until the next run
+# finishes, and pushes to main are rare enough to let them finish.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   windows:
