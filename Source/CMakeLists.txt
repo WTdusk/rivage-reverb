@@ -12,7 +12,7 @@ juce_add_plugin(RivageReverb
     BUNDLE_ID "io.github.wtdusk.rivage"
     PLUGIN_MANUFACTURER_CODE WTdk
     PLUGIN_CODE Rivg
-    VERSION 0.1.0
+    VERSION 0.2.0
     FORMATS VST3
     PRODUCT_NAME "Rivage Reverb"
     DESCRIPTION "Six-machine guitar reverb"
@@ -33,6 +33,7 @@ target_sources(RivageReverb PRIVATE
     dsp/RoomAlgorithm.cpp
     dsp/PlateAlgorithm.cpp
     dsp/SpringAlgorithm.cpp
+    dsp/SpringTankAlgorithm.cpp
     dsp/ShimmerAlgorithm.cpp
     dsp/CloudAlgorithm.cpp
     ui/RivageLookAndFeel.cpp)

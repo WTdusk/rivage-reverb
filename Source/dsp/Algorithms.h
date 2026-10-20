@@ -2,6 +2,7 @@
 
 #include "ReverbAlgorithm.h"
 #include "HallAlgorithm.h"
+#include "SpringCore.h"
 
 namespace rivage
 {
@@ -114,7 +115,10 @@ private:
 //==============================================================================
 /** A spring tank: six coiled delay loops, each with a cascade of first order
     allpasses inside the loop. The dispersion is the whole point: it stretches a
-    transient into a descending chirp, which is what a spring sounds like. */
+    transient into a descending chirp, which is what a spring sounds like.
+
+    PURE is the linear waveguide on its own: it scales exactly with the input and
+    never changes character. It is the mixing spring. */
 class SpringAlgorithm : public ReverbAlgorithm
 {
 public:
@@ -126,32 +130,28 @@ public:
     const char* getName() const override { return "SPRING"; }
 
 private:
-    static constexpr int kSprings = 6;
-    static constexpr int kDispersion = 24;
-    static constexpr int kChunk = 32;
+    spring::SpringCore<false> core;
+};
 
-    void updateCoefficients();
+//==============================================================================
+/** The same waveguide with the physical chain wrapped around it: a drive
+    transducer in front, a level dependent damper inside the coil loops, impact
+    events injected into the coils and a pickup that saturates. The tank changes
+    state as it is pushed, which is the playing spring.
 
-    double sampleRate = 48000.0;
-    AlgorithmParams params;
-    int counter = 0;
+    TANK is for tone, PURE is for mixing. */
+class SpringTankAlgorithm : public ReverbAlgorithm
+{
+public:
+    void prepare (double newSampleRate) override;
+    void reset() override;
+    void setParams (const AlgorithmParams& newParams) override;
+    void snap() override;
+    void processSample (float inL, float inR, float& outL, float& outR) override;
+    const char* getName() const override { return "SPRING TANK"; }
 
-    std::array<DelayLine, kSprings> coils;
-    std::array<std::array<float, kDispersion>, kSprings> dispersionState {};
-    std::array<float, kSprings> coilDelay {};
-    std::array<float, kSprings> coilGain {};
-    std::array<float, kSprings> injectGain {};
-    std::array<float, kSprings> pickupL {}, pickupR {};
-    std::array<float, kSprings> driveL {}, driveR {};
-
-    OnePole inputHighPassL, inputHighPassR;
-    Biquad toneL, toneR;
-    Biquad coilPeakL, coilPeakR;
-
-    juce::SmoothedValue<float> smoothDecay, smoothSize, smoothFreeze;
-    float rt60 = 2.2f;
-    float freezeAmount = 0.0f;
-    float dispersionCoefficient = 0.62f;
+private:
+    spring::SpringCore<true> core;
 };
 
 //==============================================================================
