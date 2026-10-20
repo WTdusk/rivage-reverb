@@ -187,6 +187,8 @@ public:
     {
         processor = std::make_unique<RivageAudioProcessor>();
 
+        applySetAssignments (parseSetAssignments (commandLine));
+
         const auto screenshotPath = parseScreenshotPath (commandLine);
 
         if (screenshotPath.isNotEmpty())
@@ -223,15 +225,55 @@ public:
     void systemRequestedQuit() override { quit(); }
 
 private:
+    /** `--set id=value` may be repeated; used to photograph a specific machine
+        state for the documentation. */
+    static juce::StringArray parseSetAssignments (const juce::String& commandLine)
+    {
+        juce::StringArray tokens;
+        tokens.addTokens (commandLine, true);
+
+        juce::StringArray assignments;
+
+        for (int i = 0; i < tokens.size() - 1; ++i)
+            if (tokens[i] == "--set")
+                assignments.add (tokens[++i].unquoted());
+
+        return assignments;
+    }
+
+    void applySetAssignments (const juce::StringArray& assignments)
+    {
+        auto& state = processor->getValueTreeState();
+
+        for (const auto& assignment : assignments)
+        {
+            const auto id = assignment.upToFirstOccurrenceOf ("=", false, false).trim();
+            const auto text = assignment.fromFirstOccurrenceOf ("=", false, false).trim();
+
+            if (auto* parameter = state.getParameter (id))
+            {
+                // Mirror the analyzer: a numeric value is the normalised 0..1
+                // position, anything else is the parameter's own text. Without
+                // this, "--set drive=0" would be read as a text token and fall
+                // back to the default 0.5 (0.0 dB).
+                const bool numeric = text.containsOnly ("0123456789.+-eE");
+
+                parameter->setValueNotifyingHost (numeric ? (float) juce::jlimit (0.0, 1.0, text.getDoubleValue())
+                                                          : parameter->getValueForText (text));
+            }
+        }
+    }
+
     static juce::String parseScreenshotPath (const juce::String& commandLine)
     {
-        const auto trimmed = commandLine.trim();
+        juce::StringArray tokens;
+        tokens.addTokens (commandLine, true);
 
-        if (! trimmed.startsWith ("--screenshot"))
-            return {};
+        for (int i = 0; i < tokens.size() - 1; ++i)
+            if (tokens[i] == "--screenshot")
+                return tokens[++i].unquoted();
 
-        return trimmed.fromFirstOccurrenceOf ("--screenshot", false, false).trim()
-                      .unquoted().trim();
+        return {};
     }
 
     std::unique_ptr<RivageAudioProcessor> processor;

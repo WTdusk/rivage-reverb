@@ -31,6 +31,7 @@ private:
     void placeKnob (Knob&, juce::Rectangle<int> knobArea, juce::Rectangle<int> nameArea,
                     juce::Rectangle<int> valueArea);
     void refreshAlgorithmButtons (int activeIndex);
+    void refreshSpringControls (int activeIndex);
 
     void drawArtwork (juce::Graphics&);
     void drawPaperPanel (juce::Graphics&, juce::Rectangle<float> area, float corner,
@@ -43,13 +44,18 @@ private:
     juce::Image artwork, artworkScaled;
     int artworkScaledWidth = 0, artworkScaledHeight = 0;
 
-    Knob mixKnob, decayKnob, predelayKnob, toneKnob, modKnob, sizeKnob, widthKnob;
+    Knob mixKnob, decayKnob, predelayKnob, toneKnob, modKnob, sizeKnob, widthKnob, driveKnob;
 
     std::array<juce::TextButton, kNumAlgorithms> algorithmButtons;
     std::unique_ptr<juce::ParameterAttachment> algorithmAttachment;
 
     juce::TextButton freezeButton;
     std::unique_ptr<juce::ButtonParameterAttachment> freezeAttachment;
+
+    /** SPRING carries two machines behind one slot: PURE (linear) and TANK
+        (physical). The switch only appears while SPRING is selected. */
+    juce::TextButton pureButton, tankButton;
+    std::unique_ptr<juce::ParameterAttachment> springModelAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RivageAudioProcessorEditor)
 };
