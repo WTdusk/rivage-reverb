@@ -62,6 +62,8 @@ private:
     std::atomic<float>* pSize      = nullptr;
     std::atomic<float>* pWidth     = nullptr;
     std::atomic<float>* pFreeze    = nullptr;
+    std::atomic<float>* pSpringModel = nullptr;
+    std::atomic<float>* pDrive     = nullptr;
 
     ReverbEngine engine;
     juce::AudioBuffer<float> monoScratch;

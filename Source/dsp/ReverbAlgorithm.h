@@ -16,6 +16,7 @@ struct AlgorithmParams
     float size = 0.5f;    // spatial extent (delay set, spring length, ...)
     float mod = 0.35f;    // modulation amount
     float freeze = 0.0f;  // 0..1, smoothed; 1 holds the tail forever
+    float drive = 0.5f;   // input gain into the spring transducer (TANK only)
 };
 
 //==============================================================================
@@ -51,8 +52,14 @@ public:
 constexpr int kNumAlgorithms = 6;
 constexpr int kDefaultAlgorithm = 2; // HALL
 
+/** SPRING has two machines behind one algorithm. They share a slot in the UI but
+    are separate engines, so the engine space is one wider than the UI list. */
+constexpr int kSpringAlgorithmIndex = 3;
+constexpr int kSpringTankEngine = 6;
+constexpr int kNumEngines = 7;
+
 const char* algorithmName (int index) noexcept;
 
-std::unique_ptr<ReverbAlgorithm> createAlgorithm (int index);
+std::unique_ptr<ReverbAlgorithm> createAlgorithm (int engineIndex);
 
 } // namespace rivage
