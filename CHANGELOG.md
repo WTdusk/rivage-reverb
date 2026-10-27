@@ -4,7 +4,7 @@ All notable changes to this project are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] — 2026-10-27
 
 ### Fixed
 
@@ -143,5 +143,7 @@ First release. Windows x64 VST3, as a source tree, a portable archive and a Wind
   short tank delays rather than a bug.
 - No VST2, AU or AAX builds.
 
+[0.3.0]: https://github.com/WTdusk/rivage-reverb/releases/tag/v0.3.0
+[0.3.0]: https://github.com/WTdusk/rivage-reverb/releases/tag/v0.3.0
 [0.2.0]: https://github.com/WTdusk/rivage-reverb/releases/tag/v0.2.0
 [0.1.0]: https://github.com/WTdusk/rivage-reverb/releases/tag/v0.1.0

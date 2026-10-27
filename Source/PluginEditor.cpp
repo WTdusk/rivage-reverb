@@ -353,7 +353,7 @@ void RivageAudioProcessorEditor::paint (juce::Graphics& g)
                                             RivageLookAndFeel::muted(), 0.4f,
                                             juce::Justification::centred);
 
-        RivageLookAndFeel::drawTrackedText (g, "RIVAGE 0.2",
+        RivageLookAndFeel::drawTrackedText (g, "RIVAGE 0.3",
                                             { bounds.getWidth() - 140.0f, textY, 116.0f, 14.0f },
                                             RivageLookAndFeel::monoFont (8.0f),
                                             RivageLookAndFeel::muted(), 1.4f,

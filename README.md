@@ -8,7 +8,7 @@ its own signal path rather than a preset on a shared engine — a room with earl
 reflections and low-frequency modes, a dense plate, a progressive-diffusion hall,
 a dispersive spring, a shimmering hall, and a long drifting cloud.
 
-Version 0.2.0 (pre-release). Windows x64 VST3.
+Version 0.3.0. Windows x64 VST3. See the [release](https://github.com/WTdusk/rivage-reverb/releases/tag/v0.3.0) and [changelog](CHANGELOG.md).
 
 ![The Rivage Reverb editor](docs/rivage-ui.png)
 
@@ -68,7 +68,7 @@ CPU, 48 kHz / 64-sample buffer, one core: 2.6 % (PLATE) to 8.1 % (ROOM).
 
 Charts live in `docs/figures/`.
 
-The measurements above describe the 0.2.0 release. The unreleased Cloud delay
+The measurements above describe the 0.2.0 release. The 0.3.0 Cloud delay
 capacity fix changes formerly clipped settings, including the default Size;
 see `docs/BEHAVIOUR_FIXES.md` for compatibility and verification details.
 
