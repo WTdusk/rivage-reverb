@@ -132,7 +132,7 @@ void HallAlgorithm::updateCoefficients()
     for (int i = 0; i < kLines; ++i)
     {
         const float delay = juce::jmax (16.0f, kLineMs[i] * 0.001f * (float) sampleRate * sizeScale);
-        lineDelay[(size_t) i] = delay;
+        lineDelay[(size_t) i] = delayForFreeze (delay, freezeAmount);
 
         const float gLow  = loopGainForRt60 (delay, sampleRate, tLow);
         const float gMid  = loopGainForRt60 (delay, sampleRate, rt60);
@@ -144,7 +144,7 @@ void HallAlgorithm::updateCoefficients()
 
         modInc[(size_t) i] = modRateHz * (0.7f + 0.5f * (float) (i % 5))
                                / (float) sampleRate;
-        modDepthSamples = modSeconds * (float) sampleRate;
+        modDepthSamples = modSeconds * (float) sampleRate * (1.0f - freezeAmount);
     }
 }
 
@@ -154,7 +154,8 @@ void HallAlgorithm::processSample (float inL, float inR, float& outL, float& out
     if (++counter >= kChunk)
     {
         counter = 0;
-        updateCoefficients();
+        if (advanceSmoothers (kChunk, { &smoothDecay, &smoothSize, &smoothMod, &smoothFreeze }))
+            updateCoefficients();
     }
 
     processHallSample (inL, inR, outL, outR);
@@ -224,7 +225,7 @@ void HallAlgorithm::processHallSample (float inL, float inR, float& outL, float&
         low += lowSplit.coefficient * (x - low);
         mid += midSplit.coefficient * (x - mid);
 
-        feedback[i] = low * lineLowGain[(size_t) i]
+        feedback[i] = freezeAmount >= 1.0f ? x : low * lineLowGain[(size_t) i]
                     + (mid - low) * lineMidGain[(size_t) i]
                     + (x - mid) * lineHighGain[(size_t) i];
     }

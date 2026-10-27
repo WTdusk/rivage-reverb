@@ -20,6 +20,9 @@
 #include <vector>
 #include <cmath>
 
+#include "DspChecks.h"
+#include "FreezeChecks.h"
+
 #if JUCE_DEBUG && JUCE_MSVC
  #include <crtdbg.h>
 #endif
@@ -664,6 +667,12 @@ void printUsage()
 {
     std::printf (
         "usage:\n"
+        "  RvxAnalyzer bench [--sr 48000] [--bs 64] [--sec 8]\n"
+        "  RvxAnalyzer switchtest\n"
+        "  RvxAnalyzer dspcheck\n"
+        "  RvxAnalyzer freezecheck\n"
+        "  RvxAnalyzer cloudcheck\n"
+        "  RvxAnalyzer layouttest <plugin.vst3>\n"
         "  RvxAnalyzer scan   <plugin.vst3>\n"
         "  RvxAnalyzer render <plugin.vst3> --out <file.wav> [--sr 48000] [--sec 20]\n"
         "                     [--bs 512] [--test impulse|sweep|noise|sine] [--hits 1]\n"
@@ -888,6 +897,58 @@ int doSwitchTest (const juce::StringArray& arguments)
     return 0;
 }
 
+int doLayoutTest (const String& path)
+{
+    int failures = 0;
+    for (int inputs : { 1, 2 })
+        for (int outputs : { 1, 2 })
+        {
+            PluginInstance plugin;
+            String error;
+            if (! loadPlugin (path, 48000.0, 64, plugin, error))
+            {
+                std::fprintf (stderr, "%s\n", error.toRawUTF8());
+                return 1;
+            }
+            auto& instance = *plugin.instance;
+            instance.releaseResources();
+            AudioProcessor::BusesLayout layout;
+            layout.inputBuses.add (AudioChannelSet::canonicalChannelSet (inputs));
+            layout.outputBuses.add (AudioChannelSet::canonicalChannelSet (outputs));
+            const bool supported = instance.setBusesLayout (layout);
+            bool passed = supported == (inputs <= outputs);
+            if (supported)
+            {
+                passed = assignParameter (instance, "Mix", "0", false, error) && passed;
+                for (double rate : { 44100.0, 48000.0, 96000.0 })
+                {
+                    // VST3's setupProcessing declares the maximum block size.
+                    instance.prepareToPlay (rate, 1024);
+                    for (int samples : { 0, 1, 32, 64, 257, 1024 })
+                    {
+                        AudioBuffer<float> buffer (outputs, samples);
+                        MidiBuffer midi;
+                        buffer.clear();
+                        for (int i = 0; i < samples; ++i)
+                        {
+                            buffer.setSample (0, i, 0.125f);
+                            if (inputs == 2) buffer.setSample (1, i, -0.25f);
+                        }
+                        instance.processBlock (buffer, midi);
+                        for (int ch = 0; ch < outputs; ++ch)
+                            for (int i = 0; i < samples; ++i)
+                                passed = passed && buffer.getSample (ch, i)
+                                    == (ch == 1 && inputs == 2 ? -0.25f : 0.125f);
+                    }
+                    instance.releaseResources();
+                }
+            }
+            std::printf ("%s VST3 layout %d -> %d\n", passed ? "PASS" : "FAIL", inputs, outputs);
+            failures += passed ? 0 : 1;
+        }
+    return failures == 0 ? 0 : 1;
+}
+
 } // namespace
 
 //==============================================================================
@@ -921,6 +982,22 @@ int main (int argc, char** argv)
     if (arguments.size() >= 2 && arguments[1] == "switchtest")
         return doSwitchTest (arguments);
 
+    if (arguments.size() >= 2 && arguments[1] == "dspcheck")
+        return rivage::runDspChecks();
+
+    if (arguments.size() >= 2 && arguments[1] == "freezecheck")
+        return rivage::runFreezeChecks();
+
+    if (arguments.size() >= 2 && arguments[1] == "cloudcheck")
+    {
+       #if JUCE_DEBUG && JUCE_MSVC
+        // This checks delay bounds, not allocator corruption. The full heap
+        // walk on every allocation makes the high-rate buffer matrix costly.
+        _CrtSetDbgFlag (_CRTDBG_ALLOC_MEM_DF);
+       #endif
+        return rivage::runCloudRangeChecks();
+    }
+
     if (arguments.size() < 3)
     {
         printUsage();
@@ -929,6 +1006,9 @@ int main (int argc, char** argv)
 
     const String command = arguments[1];
     const String path    = arguments[2];
+
+    if (command == "layouttest")
+        return doLayoutTest (path);
 
     if (command == "scan")
         return doScan (path);

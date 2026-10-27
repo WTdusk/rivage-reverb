@@ -12,7 +12,7 @@ repository; you either fetch it or point the build at a copy you already have.
 | JUCE | 9.0.2 | 9.0.2 |
 | Generator | Visual Studio or Ninja | Ninja or Make |
 
-Only the VST3 format is enabled. There is no installer and no code signing.
+Only the VST3 format is enabled. A Windows installer is available; there is no code signing.
 
 ## Getting JUCE
 
@@ -104,14 +104,26 @@ scripts\package.cmd            <-- rebuild the plug-in first (default)
 scripts\package.cmd nobuild    <-- package the existing build
 ```
 
-It needs the Inno Setup 6 command-line compiler. The installer is never
+It needs the Inno Setup 6 command-line compiler (6.7.3 recommended). The installer is never
 downloaded at run time and nothing in the packaged product talks to the
 network; packaging is fully offline once `ISCC.exe` is on the machine. Point
-`RIVAGE_ISCC` at it, or drop it in `tools\inno\app\ISCC.exe`:
+`RIVAGE_ISCC` at it. Otherwise the script prefers the portable 6.7.3 toolchain at
+`tools\inno\6.7.3\tools\ISCC.exe`, then falls back to `tools\inno\app\ISCC.exe`:
 
 ```bat
 set RIVAGE_ISCC=C:\Program Files (x86)\Inno Setup 6\ISCC.exe
 ```
+
+The portable 6.7.3 layout above is supplied by the `Tools.InnoSetup` 6.7.3
+NuGet package (an unofficial redistribution of Inno Setup). Extract the package
+into `tools/inno/6.7.3/`, or use an official Inno Setup installation with
+`RIVAGE_ISCC` instead.
+
+Packaging also copies `Install-RivageReverb.cmd` next to the installer. If setup
+reports error 5 creating an `is-*.tmp` directory, run this launcher. It sets
+`TEMP` and `TMP` for that installation to
+`%LOCALAPPDATA%\RivageReverb\InstallerTemp`, without changing system environment
+variables or the permissions of the normal temporary folder.
 
 The script passes `AppVersion` and `BundleDir` on the command line, so version
 bumps in `CMakeLists.txt` flow through without editing the `.iss`. `ISCC`

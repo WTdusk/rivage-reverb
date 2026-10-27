@@ -58,10 +58,16 @@ void ReverbEngine::prepare (double newSampleRate, int /*blockSize*/)
     smoothPredelay.reset (sampleRate, 0.05);
     smoothMix.reset (sampleRate, 0.03);
     smoothWidth.reset (sampleRate, 0.03);
+    smoothTone.reset (sampleRate, 0.05);
     smoothCurrentGain.reset (sampleRate, 0.04);
     smoothRetiringGain.reset (sampleRate, 0.6);
 
     lowMonoSide.reset();
+    highShelfL.reset();
+    highShelfR.reset();
+    lowShelfL.reset();
+    lowShelfR.reset();
+    controlCounter = 0;
     lowMonoSide.setHighPass (sampleRate, (double) kLowMonoHz, 0.707);
 
     activeEngine = engineFor (parameters);
@@ -87,6 +93,11 @@ void ReverbEngine::reset()
     smoothRetiringGain.setCurrentAndTargetValue (0.0f);
 
     lowMonoSide.reset();
+    highShelfL.reset();
+    highShelfR.reset();
+    lowShelfL.reset();
+    lowShelfR.reset();
+    controlCounter = 0;
 
     activeEngine = engineFor (parameters);
 
@@ -194,7 +205,7 @@ void ReverbEngine::releaseRetiringIfSilent()
 //==============================================================================
 void ReverbEngine::updateSharedCoefficients()
 {
-    const float tone = smoothTone.getTargetValue();
+    const float tone = smoothTone.getCurrentValue();
 
     toneHighGainDb = (tone - 0.5f) * 2.0f * 9.0f;
     toneLowGainDb = -(tone - 0.5f) * 2.0f * 5.0f;
@@ -222,7 +233,8 @@ void ReverbEngine::process (juce::AudioBuffer<float>& buffer)
         if (++controlCounter >= kControlChunk)
         {
             controlCounter = 0;
-            updateSharedCoefficients();
+            if (advanceSmoothers (kControlChunk, { &smoothTone }))
+                updateSharedCoefficients();
             releaseRetiringIfSilent();
         }
 
@@ -275,8 +287,13 @@ void ReverbEngine::process (juce::AudioBuffer<float>& buffer)
 
         const float mix = juce::jlimit (0.0f, 1.0f, smoothMix.getNextValue());
 
-        left[i] = dryL * (1.0f - mix) + wetL * mix;
-        right[i] = dryR * (1.0f - mix) + wetR * mix;
+        if (numChannels == 1)
+            left[i] = dryL * (1.0f - mix) + 0.5f * (wetL + wetR) * mix;
+        else
+        {
+            left[i] = dryL * (1.0f - mix) + wetL * mix;
+            right[i] = dryR * (1.0f - mix) + wetR * mix;
+        }
     }
 }
 

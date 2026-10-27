@@ -4,6 +4,41 @@ All notable changes to this project are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Make Freeze sustain the existing tail and reject new input in all seven
+  engines. Remove damping/interpolation loss from fully frozen loops, restore
+  normal decay on release, and prevent Cloud Freeze from muting the output.
+- Allocate Cloud diffusers for the full Size and Mod range before processing;
+  formerly clipped settings now use their requested delays. Cloud renders at
+  those settings intentionally differ from the old release.
+- Advance Decay, Size, Mod, Freeze and Spring Tank Drive ramps during playback;
+  live edits previously left these controls at their last snapped value.
+- Smooth Tone over 50 ms instead of jumping straight to the target EQ.
+- Fold both reverb channels into mono, duplicate mono input for stereo output,
+  and advertise only supported mono/stereo bus layouts.
+- Clear shared tone-filter history and the control counter on prepare/reset.
+- Handle a fractional-delay wrap that can round to the end of the buffer.
+
+### Performance
+
+- Replace per-read delay-line floating-point modulo and integer remainders with
+  bounded wraps, retaining the cubic interpolation and existing buffer lengths.
+- Recompute static tank/EQ coefficients only during parameter ramps. Cloud's
+  modulation and Spring Tank's input-dependent working point still update.
+- Process mono directly without allocating or copying a stereo scratch buffer.
+
+### Added
+
+- Analyzer `dspcheck` and `layouttest` commands, also run in Windows CI, covering
+  delay interpolation, live controls, mono fold-down, resets and VST3 layouts.
+- Analyzer `freezecheck` and `cloudcheck` commands for sustained-tail behavior,
+  rejection of new input, release decay and Cloud parameter boundaries.
+- Local optimization measurements and verification notes in
+  `docs/OPTIMIZATION.md`.
+
 ## [0.2.0] — 2026-10-20
 
 SPRING grows a second machine. The old, strictly linear waveguide is kept

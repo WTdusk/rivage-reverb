@@ -270,7 +270,15 @@ public:
         if (++counter >= kChunk)
         {
             counter = 0;
-            updateCoefficients();
+            bool changed = advanceSmoothers (kChunk, { &smoothDecay, &smoothSize, &smoothFreeze });
+            if constexpr (kTank)
+            {
+                advanceSmoothers (kChunk, { &smoothDrive });
+                // The tank's working point also follows the input envelope.
+                changed = true;
+            }
+            if (changed)
+                updateCoefficients();
         }
 
         const float inputGain = 1.0f - freezeAmount;
@@ -288,8 +296,9 @@ public:
             // would put the gate on the far side of the tank's own 280 Hz
             // shaping, which sits roughly 9 dB below the program level and made
             // the gate open far too late.
-            senseDc += (mono - senseDc) * (1.0f - dcPole);
-            const float sense = std::abs (mono - senseDc) * driveGain;
+            const float senseInput = mono * inputGain;
+            senseDc += (senseInput - senseDc) * (1.0f - dcPole);
+            const float sense = std::abs (senseInput - senseDc) * driveGain;
 
             excite = driveStage (excite);
 
@@ -419,11 +428,11 @@ private:
         for (int i = 0; i < kSprings; ++i)
         {
             const float delay = juce::jmax (32.0f, kCoilMs[i] * 0.001f * (float) sampleRate * sizeScale);
-            coilDelay[(size_t) i] = delay;
+            coilDelay[(size_t) i] = delayForFreeze (delay, freezeAmount);
 
             // Springs lose their top end quickly; the low mid rings longest.
             const float g = loopGainForRt60 (delay, sampleRate, tankRt60 * 1.05f);
-            coilGain[(size_t) i] = juce::jmin (0.9999f, g);
+            coilGain[(size_t) i] = gainForFreeze (juce::jmin (0.9999f, g), freezeAmount);
         }
     }
 

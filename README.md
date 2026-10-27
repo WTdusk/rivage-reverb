@@ -68,6 +68,10 @@ CPU, 48 kHz / 64-sample buffer, one core: 2.6 % (PLATE) to 8.1 % (ROOM).
 
 Charts live in `docs/figures/`.
 
+The measurements above describe the 0.2.0 release. The unreleased Cloud delay
+capacity fix changes formerly clipped settings, including the default Size;
+see `docs/BEHAVIOUR_FIXES.md` for compatibility and verification details.
+
 ## Building
 
 Requirements: CMake 3.22+, a C++17 compiler, and JUCE 9.0.2. JUCE is not vendored;
@@ -120,7 +124,10 @@ already scans that path, otherwise point the DAW at the build folder directly.
 - `tools/analyzer` — a headless host used during development: `scan` prints a
   plug-in's parameter model, `render` writes impulse, sweep or programme
   material renders to WAV, `bench` runs the DSP in-process, `switchtest` checks
-  algorithm changes for clicks.
+  algorithm changes for clicks, `dspcheck` verifies live controls and mono DSP,
+  `layouttest <plugin.vst3>` verifies hosted mono/stereo channel layouts,
+  `freezecheck` checks tail hold/release and input isolation, and `cloudcheck`
+  exercises Cloud's Size/Mod range across sample rates.
 - `tools/preview` — a standalone window that shows the editor without a DAW,
   with `--screenshot` for documentation images.
 - `scripts/smoke.sh` — 26 renders across algorithms, sample rates and buffer

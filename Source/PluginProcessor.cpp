@@ -65,6 +65,15 @@ void RivageAudioProcessor::releaseResources()
 {
 }
 
+bool RivageAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+{
+    const auto input = layouts.getMainInputChannelSet();
+    const auto output = layouts.getMainOutputChannelSet();
+    return (input == juce::AudioChannelSet::mono()
+            && (output == juce::AudioChannelSet::mono() || output == juce::AudioChannelSet::stereo()))
+        || (input == juce::AudioChannelSet::stereo() && output == juce::AudioChannelSet::stereo());
+}
+
 void RivageAudioProcessor::pushTargetsToEngine()
 {
     ReverbParameters params;
@@ -90,27 +99,11 @@ void RivageAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     juce::ScopedNoDenormals noDenormals;
     juce::ignoreUnused (midi);
 
-    const int numChannels = getTotalNumOutputChannels();
+    if (getTotalNumInputChannels() == 1 && buffer.getNumChannels() >= 2)
+        buffer.copyFrom (1, 0, buffer, 0, 0, buffer.getNumSamples());
 
-    if (numChannels >= 2)
-    {
-        pushTargetsToEngine();
-        engine.process (buffer);
-        return;
-    }
-
-    if (numChannels == 1 && buffer.getNumSamples() > 0)
-    {
-        // The engine is stereo; run the mono signal through both sides and fold back.
-        monoScratch.setSize (2, buffer.getNumSamples(), false, false, true);
-        monoScratch.copyFrom (0, 0, buffer, 0, 0, buffer.getNumSamples());
-        monoScratch.copyFrom (1, 0, buffer, 0, 0, buffer.getNumSamples());
-
-        pushTargetsToEngine();
-        engine.process (monoScratch);
-
-        buffer.copyFrom (0, 0, monoScratch, 0, 0, buffer.getNumSamples());
-    }
+    pushTargetsToEngine();
+    engine.process (buffer);
 }
 
 //==============================================================================

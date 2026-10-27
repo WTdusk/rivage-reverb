@@ -29,9 +29,14 @@ void CloudAlgorithm::prepare (double newSampleRate)
 
             const int dL = juce::jmax (8, (int) (kStageLeftMs[s] * 0.001 * sampleRate * scale));
             const int dR = juce::jmax (8, (int) (kStageRightMs[s] * 0.001 * sampleRate * scale));
-
-            diffusers[(size_t) (c * kStages + s)].prepare (dL + 64, kChainGain[s], dL);
-            diffusers[(size_t) ((kChains + c) * kStages + s)].prepare (dR + 64, kChainGain[s], dR);
+            // Size reaches 1.5x and modulation adds up to 8 ms. Allocate for
+            // both, plus cubic interpolation guards, before audio starts.
+            const auto capacity = [this, scale] (float milliseconds)
+            {
+                return (int) std::ceil (sampleRate * (milliseconds * 0.001 * scale * 1.5 + 0.008)) + 8;
+            };
+            diffusers[(size_t) (c * kStages + s)].prepare (capacity (kStageLeftMs[s]), kChainGain[s], dL);
+            diffusers[(size_t) ((kChains + c) * kStages + s)].prepare (capacity (kStageRightMs[s]), kChainGain[s], dR);
         }
     }
 
@@ -119,8 +124,8 @@ void CloudAlgorithm::updateCoefficients()
     for (int c = 0; c < 2 * kChains; ++c)
     {
         const float delay = juce::jmax (16.0f, kFeedbackMs[c] * 0.001f * (float) sampleRate * sizeScale);
-        feedbackDelay[(size_t) c] = delay;
-        feedbackGain[(size_t) c] = juce::jmin (0.9995f, loopGainForRt60 (delay, sampleRate, rt60));
+        feedbackDelay[(size_t) c] = delayForFreeze (delay, freezeAmount);
+        feedbackGain[(size_t) c] = gainForFreeze (juce::jmin (0.9995f, loopGainForRt60 (delay, sampleRate, rt60)), freezeAmount);
 
         modInc[(size_t) c] = modRateHz * (0.75f + 0.5f * (float) (c % 4)) / (float) sampleRate;
     }
@@ -135,15 +140,21 @@ void CloudAlgorithm::updateCoefficients()
 
         modPhase[(size_t) c] = phase;
 
-        const float offset = sine.lookup (phase) * modSamples * smoothMod.getCurrentValue();
+        const float offset = sine.lookup (phase) * modSamples * smoothMod.getCurrentValue() * (1.0f - freezeAmount);
 
         for (int s = 0; s < kStages; ++s)
         {
             const float baseL = kStageLeftMs[s] * 0.001f * (float) sampleRate * sizeScale * (1.0f + 0.13f * (float) s);
             const float baseR = kStageRightMs[s] * 0.001f * (float) sampleRate * sizeScale * (1.0f + 0.13f * (float) s);
 
-            diffusers[(size_t) (c * kStages + s)].setDelay (baseL + offset);
-            diffusers[(size_t) ((kChains + c) * kStages + s)].setDelay (baseR - offset * 0.8f);
+            auto& left = diffusers[(size_t) (c * kStages + s)];
+            auto& right = diffusers[(size_t) ((kChains + c) * kStages + s)];
+            const float delayL = delayForFreeze (baseL + offset, freezeAmount);
+            const float delayR = delayForFreeze (baseR - offset * 0.8f, freezeAmount);
+            jassert (delayL <= (float) left.line.buffer.size() - 3.0f);
+            jassert (delayR <= (float) right.line.buffer.size() - 3.0f);
+            left.setDelay (delayL);
+            right.setDelay (delayR);
         }
     }
 }
@@ -154,6 +165,7 @@ void CloudAlgorithm::processSample (float inL, float inR, float& outL, float& ou
     if (++counter >= kChunk)
     {
         counter = 0;
+        advanceSmoothers (kChunk, { &smoothDecay, &smoothSize, &smoothMod, &smoothFreeze });
         updateCoefficients();
     }
 
@@ -163,8 +175,8 @@ void CloudAlgorithm::processSample (float inL, float inR, float& outL, float& ou
 
     for (int c = 0; c < kChains; ++c)
     {
-        float chainL = inL;
-        float chainR = inR;
+        float chainL = inL * inputGain;
+        float chainR = inR * inputGain;
 
         // Feedback from the previous lap, darkened slightly on the way round.
         const float fbL = feedback[(size_t) c].read (feedbackDelay[(size_t) c]);
@@ -173,8 +185,15 @@ void CloudAlgorithm::processSample (float inL, float inR, float& outL, float& ou
         feedbackState[(size_t) c] += 0.25f * (fbL - feedbackState[(size_t) c]);
         feedbackState[(size_t) (c + kChains)] += 0.25f * (fbR - feedbackState[(size_t) (c + kChains)]);
 
-        chainL += feedbackState[(size_t) c] * feedbackGain[(size_t) c];
-        chainR += feedbackState[(size_t) (c + kChains)] * feedbackGain[(size_t) (c + kChains)];
+        // Remove loop damping as Freeze rises, without muting the wet output.
+        const float frozenFbL = freezeAmount > 0.0f
+            ? feedbackState[(size_t) c] + freezeAmount * (fbL - feedbackState[(size_t) c])
+            : feedbackState[(size_t) c];
+        const float frozenFbR = freezeAmount > 0.0f
+            ? feedbackState[(size_t) (c + kChains)] + freezeAmount * (fbR - feedbackState[(size_t) (c + kChains)])
+            : feedbackState[(size_t) (c + kChains)];
+        chainL += frozenFbL * feedbackGain[(size_t) c];
+        chainR += frozenFbR * feedbackGain[(size_t) (c + kChains)];
 
         for (int s = 0; s < kStages; ++s)
         {
@@ -186,12 +205,16 @@ void CloudAlgorithm::processSample (float inL, float inR, float& outL, float& ou
         wetL += chainL;
         wetR += chainR;
 
-        feedback[(size_t) c].push (chainR * 0.35f + chainL * 0.65f);
-        feedback[(size_t) (c + kChains)].push (chainL * 0.35f + chainR * 0.65f);
+        // Cross mixing contracts the stereo difference. Fade to independent
+        // lossless loops when frozen, preserving both channels' stored energy.
+        const float cross = 0.35f * inputGain;
+        const float same = 1.0f - cross;
+        feedback[(size_t) c].push (chainR * cross + chainL * same);
+        feedback[(size_t) (c + kChains)].push (chainL * cross + chainR * same);
     }
 
-    wetL *= inputGain * 0.42f;
-    wetR *= inputGain * 0.42f;
+    wetL *= 0.42f;
+    wetR *= 0.42f;
 
     // The wash accumulates at long decay settings, so the output is soft
     // saturated instead of hard clipped: transparent at normal levels, never

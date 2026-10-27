@@ -46,6 +46,22 @@ jobs:
         shell: bash
         run: bash scripts/smoke.sh
 
+      - name: DSP regression checks
+        shell: pwsh
+        run: '& "build/tools/analyzer/Analyzer_artefacts/Release/Analyzer.exe" dspcheck'
+
+      - name: VST3 channel layout checks
+        shell: pwsh
+        run: '& "build/tools/analyzer/Analyzer_artefacts/Release/Analyzer.exe" layouttest "build/Source/RivageReverb_artefacts/Release/VST3/Rivage Reverb.vst3"'
+
+      - name: Freeze behavior checks
+        shell: pwsh
+        run: '& "build/tools/analyzer/Analyzer_artefacts/Release/Analyzer.exe" freezecheck'
+
+      - name: Cloud parameter range checks
+        shell: pwsh
+        run: '& "build/tools/analyzer/Analyzer_artefacts/Release/Analyzer.exe" cloudcheck'
+
       - name: Upload plug-in
         uses: actions/upload-artifact@v4
         with:

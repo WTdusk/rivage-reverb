@@ -214,19 +214,20 @@ void RoomAlgorithm::updateCoefficients()
 
     const float modRateHz = 0.05f + 0.25f * smoothMod.getCurrentValue();
     modDepthSamples = (0.0006f + 0.0016f * smoothMod.getCurrentValue()) * (float) sampleRate;
+    modDepthSamples *= 1.0f - freezeAmount;
 
     for (int i = 0; i < kLines; ++i)
     {
         const float delay = juce::jmax (16.0f, kTankMs[i] * 0.001f * (float) sampleRate * sizeScale);
-        lineDelay[(size_t) i] = delay;
+        lineDelay[(size_t) i] = delayForFreeze (delay, freezeAmount);
 
         const float gLow  = loopGainForRt60 (delay, sampleRate, rt60 * kLowBandRatio);
         const float gMid  = loopGainForRt60 (delay, sampleRate, rt60 * kMidBandRatio);
         const float gHigh = loopGainForRt60 (delay, sampleRate, tHigh);
 
-        lineLowGain[(size_t) i]  = juce::jmin (0.9999f, gLow);
-        lineMidGain[(size_t) i]  = juce::jmin (0.9999f, gMid);
-        lineHighGain[(size_t) i] = juce::jmin (0.9999f, gHigh);
+        lineLowGain[(size_t) i]  = gainForFreeze (juce::jmin (0.9999f, gLow), freezeAmount);
+        lineMidGain[(size_t) i]  = gainForFreeze (juce::jmin (0.9999f, gMid), freezeAmount);
+        lineHighGain[(size_t) i] = gainForFreeze (juce::jmin (0.9999f, gHigh), freezeAmount);
 
         modInc[(size_t) i] = modRateHz * (0.8f + 0.4f * (float) (i % 3)) / (float) sampleRate;
     }
@@ -238,11 +239,13 @@ void RoomAlgorithm::processSample (float inL, float inR, float& outL, float& out
     if (++counter >= kChunk)
     {
         counter = 0;
-        updateCoefficients();
+        if (advanceSmoothers (kChunk, { &smoothDecay, &smoothSize, &smoothMod, &smoothFreeze }))
+            updateCoefficients();
     }
 
-    inputBufferL.push (inL);
-    inputBufferR.push (inR);
+    const float inputGain = 1.0f - freezeAmount;
+    inputBufferL.push (inL * inputGain);
+    inputBufferR.push (inR * inputGain);
 
     float earlyL = 0.0f, earlyR = 0.0f;
 
@@ -289,8 +292,8 @@ void RoomAlgorithm::processSample (float inL, float inR, float& outL, float& out
         tap[i] = lines[(size_t) i].read (juce::jmax (8.0f, lineDelay[(size_t) i] + wobble));
     }
 
-    const float bedL = earlyL * 0.55f + modes * 0.35f;
-    const float bedR = earlyR * 0.55f + modes * 0.35f;
+    const float bedL = (earlyL * 0.55f + modes * 0.35f) * inputGain;
+    const float bedR = (earlyR * 0.55f + modes * 0.35f) * inputGain;
 
     float tankOutL = 0.0f, tankOutR = 0.0f;
 
@@ -314,7 +317,8 @@ void RoomAlgorithm::processSample (float inL, float inR, float& outL, float& out
 
         const float gL = lineLowGain[(size_t) i], gM = lineMidGain[(size_t) i], gH = lineHighGain[(size_t) i];
 
-        feedback[i] = low * gL + (mid - low) * gM + (x - mid) * gH;
+        feedback[i] = freezeAmount >= 1.0f ? x
+            : low * gL + (mid - low) * gM + (x - mid) * gH;
     }
 
     hadamard8 (feedback);
@@ -326,8 +330,8 @@ void RoomAlgorithm::processSample (float inL, float inR, float& outL, float& out
                                 + bedR * injectR[(size_t) i]);
     }
 
-    outL = softClip ((earlyL * 0.85f + tankOutL * 0.55f) * kOutputTrim);
-    outR = softClip ((earlyR * 0.85f + tankOutR * 0.55f) * kOutputTrim);
+    outL = softClip ((earlyL * inputGain * 0.85f + tankOutL * 0.55f) * kOutputTrim);
+    outR = softClip ((earlyR * inputGain * 0.85f + tankOutR * 0.55f) * kOutputTrim);
 }
 
 } // namespace rivage

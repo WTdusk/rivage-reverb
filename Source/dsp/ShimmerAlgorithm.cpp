@@ -59,7 +59,8 @@ void ShimmerAlgorithm::processSample (float inL, float inR, float& outL, float& 
     if (++counter >= kChunk)
     {
         counter = 0;
-        updateCoefficients();
+        if (advanceSmoothers (kChunk, { &smoothDecay, &smoothSize, &smoothMod, &smoothFreeze }))
+            updateCoefficients();
     }
 
     // The previous wet output, shifted up an octave, is fed back into the tank.

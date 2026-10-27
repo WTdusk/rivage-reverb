@@ -123,19 +123,20 @@ void PlateAlgorithm::updateCoefficients()
 
     const float modRateHz = 0.08f + 0.35f * smoothMod.getCurrentValue();
     modDepthSamples = 0.0004f * (float) sampleRate * smoothMod.getCurrentValue();
+    modDepthSamples *= 1.0f - freezeAmount;
 
     for (int i = 0; i < kLines; ++i)
     {
         const float delay = juce::jmax (16.0f, kTankMs[i] * 0.001f * (float) sampleRate * sizeScale);
-        lineDelay[(size_t) i] = delay;
+        lineDelay[(size_t) i] = delayForFreeze (delay, freezeAmount);
 
         const float gLow  = loopGainForRt60 (delay, sampleRate, tLow);
         const float gMid  = loopGainForRt60 (delay, sampleRate, rt60);
         const float gHigh = loopGainForRt60 (delay, sampleRate, tHigh);
 
-        lineLowGain[(size_t) i]  = juce::jmin (0.9999f, gLow);
-        lineMidGain[(size_t) i]  = juce::jmin (0.9999f, gMid);
-        lineHighGain[(size_t) i] = juce::jmin (0.9999f, gHigh);
+        lineLowGain[(size_t) i]  = gainForFreeze (juce::jmin (0.9999f, gLow), freezeAmount);
+        lineMidGain[(size_t) i]  = gainForFreeze (juce::jmin (0.9999f, gMid), freezeAmount);
+        lineHighGain[(size_t) i] = gainForFreeze (juce::jmin (0.9999f, gHigh), freezeAmount);
 
         modInc[(size_t) i] = modRateHz * (0.7f + 0.5f * (float) (i % 4)) / (float) sampleRate;
     }
@@ -147,7 +148,8 @@ void PlateAlgorithm::processSample (float inL, float inR, float& outL, float& ou
     if (++counter >= kChunk)
     {
         counter = 0;
-        updateCoefficients();
+        if (advanceSmoothers (kChunk, { &smoothDecay, &smoothSize, &smoothMod, &smoothFreeze }))
+            updateCoefficients();
     }
 
     const float inputGain = 1.0f - freezeAmount;
@@ -198,7 +200,7 @@ void PlateAlgorithm::processSample (float inL, float inR, float& outL, float& ou
         low += lowSplit.coefficient * (x - low);
         mid += midSplit.coefficient * (x - mid);
 
-        feedback[i] = low * lineLowGain[(size_t) i]
+        feedback[i] = freezeAmount >= 1.0f ? x : low * lineLowGain[(size_t) i]
                     + (mid - low) * lineMidGain[(size_t) i]
                     + (x - mid) * lineHighGain[(size_t) i];
     }

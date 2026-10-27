@@ -4,10 +4,37 @@
 
 #include <array>
 #include <cmath>
+#include <initializer_list>
 #include <vector>
 
 namespace rivage
 {
+
+/** Advance control-rate ramps and report whether coefficients need refreshing.
+    Test before skipping so the final ramp value is applied too. */
+inline bool advanceSmoothers (int samples,
+                             std::initializer_list<juce::SmoothedValue<float>*> smoothers) noexcept
+{
+    bool changed = false;
+    for (auto* smoother : smoothers)
+    {
+        changed = smoother->isSmoothing() || changed;
+        smoother->skip (samples);
+    }
+    return changed;
+}
+
+/** A stationary integer delay is lossless; fractional interpolation is not.
+    Approach that delay with the freeze ramp, leaving normal playback intact. */
+inline float delayForFreeze (float samples, float freeze) noexcept
+{
+    return freeze > 0.0f ? samples + freeze * (std::round (samples) - samples) : samples;
+}
+
+inline float gainForFreeze (float gain, float freeze) noexcept
+{
+    return freeze > 0.0f ? gain + freeze * (1.0f - gain) : gain;
+}
 
 //==============================================================================
 /** Control mapping shared by every algorithm: a 0..1 knob becomes an RT60 in
@@ -68,18 +95,22 @@ struct DelayLine
         delay = juce::jlimit (2.0f, (float) (size - 3), delay);
 
         float position = (float) writeIndex - delay;
-        position = std::fmod (position, (float) size);
-
+        // The clamped delay is shorter than the buffer, so at most one wrap
+        // is needed. Keep the same floating-point position/interpolation.
         if (position < 0.0f)
             position += (float) size;
+
+        // Adding the buffer size can round a tiny negative position to size.
+        if (position >= (float) size)
+            position = 0.0f;
 
         const int index = (int) position;
         const float fraction = position - (float) index;
 
-        const int i0 = (index - 1 + size) % size;
+        const int i0 = index > 0 ? index - 1 : size - 1;
         const int i1 = index;
-        const int i2 = (index + 1) % size;
-        const int i3 = (index + 2) % size;
+        const int i2 = index + 1 < size ? index + 1 : index + 1 - size;
+        const int i3 = index + 2 < size ? index + 2 : index + 2 - size;
 
         const float y0 = buffer[(size_t) i0];
         const float y1 = buffer[(size_t) i1];

@@ -42,14 +42,17 @@ if not exist "%BUNDLE%\Contents\x86_64-win\Rivage Reverb.vst3" (
 
 rem ------------------------------------------------------------------ compile
 set "ISCC=%ROOT%\tools\inno\app\ISCC.exe"
+if exist "%ROOT%\tools\inno\6.7.3\tools\ISCC.exe" set "ISCC=%ROOT%\tools\inno\6.7.3\tools\ISCC.exe"
+if defined RIVAGE_ISCC set "ISCC=%RIVAGE_ISCC%"
 if not exist "%ISCC%" (
     echo [package] Inno Setup compiler missing: "%ISCC%"
-    echo [package] see installer\README.md to restore the portable toolchain
+    echo [package] set RIVAGE_ISCC to ISCC.exe or see BUILDING.md
     goto :fail
 )
 
 if not exist "%ROOT%\dist" mkdir "%ROOT%\dist"
 
+echo [package] compiler: "%ISCC%"
 echo [package] compiling installer...
 "%ISCC%" /Q "/DAppVersion=%APPVER%" "/DBundleDir=%BUNDLE%" "%ROOT%\installer\RivageReverb.iss" > "%ROOT%\dist\iscc.log" 2>&1
 if errorlevel 1 (
@@ -63,6 +66,9 @@ if not exist "%OUT%" (
     echo [package] expected output missing: "%OUT%"
     goto :fail
 )
+
+copy /y "%ROOT%\installer\Install-RivageReverb.cmd" "%ROOT%\dist\Install-RivageReverb.cmd" >nul
+if errorlevel 1 goto :fail
 
 echo.
 echo [package] done: "%OUT%"
